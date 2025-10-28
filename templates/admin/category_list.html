@@ -1,0 +1,96 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Categorías - ShopQR Admin{% endblock %}
+
+{% block admin_content %}
+<div class="categories-container">
+    <div class="page-header">
+        <h2>Categorías</h2>
+        <a href="{{ url_for('category.category_new') }}" class="btn btn-primary">Nueva Categoría</a>
+    </div>
+
+    {% if categories %}
+        <!-- Vista de tabla para desktop -->
+        <div class="categories-table desktop-only">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Productos</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category in categories %}
+                        <tr>
+                            <td><strong>{{ category.name }}</strong></td>
+                            <td>{{ category.description[:50] if category.description else '-' }}</td>
+                            <td>{{ category.products.count() }}</td>
+                            <td>
+                                {% if category.active %}
+                                    <span class="status-active">Activa</span>
+                                {% else %}
+                                    <span class="status-inactive">Inactiva</span>
+                                {% endif %}
+                            </td>
+                            <td class="actions">
+                                <a href="{{ url_for('category.category_edit', category_id=category.id) }}" class="btn btn-sm">Editar</a>
+                                <form method="POST" action="{{ url_for('category.category_delete', category_id=category.id) }}" style="display:inline;" onsubmit="return confirm('¿Estás seguro?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Vista de cards para móvil -->
+        <div class="categories-cards mobile-only">
+            {% for category in categories %}
+                <div class="category-card">
+                    <div class="category-card-header">
+                        <h3 class="category-card-name">{{ category.name }}</h3>
+                        {% if category.active %}
+                            <span class="status-active">Activa</span>
+                        {% else %}
+                            <span class="status-inactive">Inactiva</span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if category.description %}
+                        <p class="category-card-description">{{ category.description[:100] }}{% if category.description|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+                    
+                    <div class="category-card-info">
+                        <span class="info-badge">
+                            <i class="fas fa-box"></i> {{ category.products.count() }} producto{% if category.products.count() != 1 %}s{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="category-card-actions">
+                        <a href="{{ url_for('category.category_edit', category_id=category.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <form method="POST" action="{{ url_for('category.category_delete', category_id=category.id) }}" style="display:inline;" onsubmit="return confirm('¿Estás seguro de eliminar esta categoría?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>No hay categorías</h3>
+            <p>Crea categorías para organizar tus productos</p>
+            <a href="{{ url_for('category.category_new') }}" class="btn btn-primary">Crear Primera Categoría</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

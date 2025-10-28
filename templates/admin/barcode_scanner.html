@@ -1,0 +1,555 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Escanear Código - Tag2QR{% endblock %}
+
+{% block content %}
+<div class="scanner-container">
+    <div class="scanner-header">
+        <h1>Escanear Código de Barras / QR</h1>
+        <p>Apunta la cámara al código para escanearlo automáticamente</p>
+    </div>
+
+    <div class="scanner-interface">
+        <div class="scanner-video-container">
+            <div id="reader"></div>
+        </div>
+
+        <div class="scanner-result" id="scanner-result" style="display: none;">
+            <div class="result-content" id="result-content">
+                <!-- Resultado dinámico se insertará aquí -->
+            </div>
+        </div>
+
+        <div class="scanner-controls">
+            <button type="button" class="btn btn-outline" id="stop-scanner" style="display: none;">
+                <i class="fas fa-stop"></i> Detener Escáner
+            </button>
+
+            <!-- + Agregar: oculto por defecto; se mostrará cuando el producto NO exista -->
+            <button type="button" class="btn btn-primary" id="create-product-btn" style="display: none;">
+                <i class="fas fa-plus" aria-hidden="true"></i> Agregar
+            </button>
+
+            <button type="button" class="btn btn-primary" id="scan-again-btn" style="display: none;">
+                <i class="fas fa-qrcode"></i>  Escanear Otro
+            </button>
+
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+        </div>
+
+        <div class="scanner-status" id="status-message">
+            Iniciando escáner...
+        </div>
+    </div>
+</div>
+
+<style>
+.scanner-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.scanner-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.scanner-header h1 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.scanner-header p {
+    color: #666;
+    margin: 0;
+}
+
+.scanner-interface {
+    border: var(--border-width) solid black;
+    padding: var(--spacing-lg);
+    background: white;
+}
+
+.scanner-video-container {
+    margin-bottom: var(--spacing-lg);
+}
+
+#reader {
+    max-width: 600px;
+    margin: 0 auto;
+    border: var(--border-width) solid black;
+}
+
+#reader video {
+    width: 100%;
+    border: none;
+}
+
+.scanner-result {
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: #f0f8ff;
+    border: 2px solid #4CAF50;
+}
+
+.result-content h3 {
+    margin-top: 0;
+    color: #4CAF50;
+}
+
+.product-card {
+    background: white;
+    border: var(--border-width) solid black;
+    padding: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.product-card h4 {
+    margin: 0 0 var(--spacing-sm) 0;
+    color: #333;
+}
+
+.product-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-sm);
+    margin: var(--spacing-md) 0;
+}
+
+.product-info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--spacing-xs);
+    background: #f8f9fa;
+}
+
+.product-info-item strong {
+    color: #666;
+}
+
+.not-found-message {
+    text-align: center;
+    padding: var(--spacing-lg);
+}
+
+.not-found-message i {
+    font-size: 3rem;
+    color: #ffc107;
+    margin-bottom: var(--spacing-md);
+}
+
+.result-code {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    padding: var(--spacing-md);
+    background: white;
+    border: var(--border-width) solid #e5e5e5;
+    margin: var(--spacing-md) 0;
+    word-break: break-all;
+}
+
+.result-format {
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Botones del escáner - estilo blanco/negro y responsive */
+.btn-scanner-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    min-height: 25px; /* tamaño táctil mínimo */
+    margin: 0.5rem auto 0;
+    background: #000;
+    color: #fff;
+    border: 1px solid #000;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    text-align: center;
+    box-shadow: none;
+}
+.btn-scanner-primary i { margin: 0; color: #fff; background: transparent; }
+.btn-scanner-primary:active { transform: translateY(1px); }
+.btn-scanner-primary:hover {
+    background: #fff;
+    color: #000;
+    border-color: #000;
+}
+
+@media (min-width: 700px) {
+    .btn-scanner-primary { 
+        max-width: 400px; 
+        max-height: 25px;
+    }
+}
+
+.scanner-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    justify-content: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.scanner-status {
+    text-align: center;
+    padding: var(--spacing-md);
+    min-height: 24px;
+    font-size: 14px;
+    margin-bottom: var(--spacing-lg);
+}
+
+.status-error {
+    color: #d32f2f;
+}
+
+.status-success {
+    color: #4CAF50;
+}
+
+.status-info {
+    color: #666;
+}
+
+.status-scanning {
+    color: #2196F3;
+    font-weight: 600;
+}
+
+.scanner-help {
+    background: #f5f5f5;
+    padding: var(--spacing-lg);
+    border: var(--border-width) solid #e5e5e5;
+}
+
+.scanner-help h4 {
+    margin-top: 0;
+}
+
+.scanner-help ul {
+    margin: var(--spacing-md) 0;
+    padding-left: var(--spacing-lg);
+}
+
+.scanner-help li {
+    margin-bottom: var(--spacing-sm);
+}
+
+.scanner-help p {
+    margin-bottom: 0;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .scanner-container {
+        padding: var(--spacing-md);
+    }
+    
+    .scanner-controls {
+        flex-direction: column;
+    }
+    
+    .scanner-controls .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<!-- Librería html5-qrcode desde CDN -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+let html5QrCode = null;
+let lastScannedCode = null;
+
+const readerElement = document.getElementById('reader');
+const resultContainer = document.getElementById('scanner-result');
+const resultContent = document.getElementById('result-content');
+const statusMessage = document.getElementById('status-message');
+const stopBtn = document.getElementById('stop-scanner');
+const createBtn = document.getElementById('create-product-btn');
+const scanAgainBtn = document.getElementById('scan-again-btn');
+
+function showStatus(message, type = 'info') {
+    statusMessage.textContent = message;
+    statusMessage.className = `scanner-status status-${type}`;
+}
+
+async function checkProduct(sku) {
+    try {
+        const skuClean = (sku || '').toString().trim();
+        // Remover caracteres invisibles
+        const skuSafe = skuClean.replace(/[^\x20-\x7E]/g, '');
+        console.log('[scanner] checkProduct -> sending sku:', skuSafe);
+        const response = await fetch(`{{ url_for('admin.check_product_by_sku', sku='') }}${encodeURIComponent(skuSafe)}`);
+        const data = await response.json();
+        console.log('[scanner] checkProduct -> response:', data);
+        return data;
+    } catch (error) {
+        console.error('Error al verificar producto:', error);
+        return null;
+    }
+}
+
+async function onScanSuccess(decodedText, decodedResult) {
+    lastScannedCode = (decodedText || '').toString().trim();
+    console.log('[scanner] decodedText raw:', decodedText, ' sanitized:', lastScannedCode);
+    const format = decodedResult.result.format?.formatName || 'Desconocido';
+    
+    showStatus('Verificando producto...', 'info');
+    
+    // Detener escáner
+    await stopScanner();
+    
+    // Verificar si el producto existe
+    const productData = await checkProduct(lastScannedCode);
+    
+    if (productData && productData.exists) {
+        // Producto encontrado
+        const product = productData.product;
+        resultContent.innerHTML = `
+            <h3><i class="fas fa-check-circle"></i> Producto Encontrado</h3>
+            <div class="result-code">${decodedText}</div>
+            <div class="result-format">Formato: ${format}</div>
+            
+            <div class="product-card">
+                <h4>${product.name}</h4>
+                <div class="product-info">
+                    <div class="product-info-item">
+                        <strong>SKU:</strong>
+                        <span>${product.sku}</span>
+                    </div>
+                    <div class="product-info-item">
+                        <strong>Precio:</strong>
+                        <span>$${product.price.toFixed(2)}</span>
+                    </div>
+                    <div class="product-info-item">
+                        <strong>Stock:</strong>
+                        <span>${product.stock} unidades</span>
+                    </div>
+                </div>
+                <a href="${product.url}" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    <i class="fas fa-eye"></i> Ver Detalles del Producto
+                </a>
+            </div>
+        `;
+        // Ocultar botón de crear si el producto ya existe
+        if (createBtn) createBtn.style.display = 'none';
+        showStatus('¡Producto encontrado en tu tienda!', 'success');
+        // Notificación nativa y vibración opcional
+        try {
+            if (navigator.vibrate) navigator.vibrate(150);
+        } catch (e) {}
+        notifyProductFound(product);
+        console.log('[scanner] product FOUND:', product);
+    } else {
+        // Producto no encontrado
+        resultContent.innerHTML = `
+            <div class="not-found-message">
+                <i class="fas fa-box-open"></i>
+                <h3>Producto No Encontrado</h3>
+                <div class="result-code">${decodedText}</div>
+                <div class="result-format">Formato: ${format}</div>
+                <p style="margin: 1rem 0; color: #666;">
+                    Este código no está registrado en tu tienda.
+                </p>
+                <!-- El botón +Agregar se muestra en el contenedor de controles -->
+            </div>
+        `;
+        // Mostrar botón de crear producto en los controles
+        if (createBtn) createBtn.style.display = 'inline-block';
+        showStatus('Producto no encontrado. Puedes crearlo ahora.', 'info');
+        console.log('[scanner] product NOT FOUND for sku:', lastScannedCode);
+    }
+    
+    // Mostrar resultado
+    resultContainer.style.display = 'block';
+    scanAgainBtn.style.display = 'inline-block';
+    
+    // Reproducir sonido de éxito
+    playBeep();
+}
+
+function createProductWithSku(sku) {
+    // Almacenar en sessionStorage
+    const skuClean = (sku || '').toString().trim();
+    sessionStorage.setItem('scanned_sku', skuClean);
+    
+    // Redirigir al formulario de nuevo producto
+    window.location.href = '{{ url_for("admin.product_new") }}';
+}
+
+function onScanError(errorMessage) {
+    // No mostrar errores de escaneo continuos (son normales)
+    // Solo errores críticos
+    if (!errorMessage.includes('NotFoundException')) {
+        console.warn('Error de escaneo:', errorMessage);
+    }
+}
+
+async function startScanner() {
+    try {
+        showStatus('Iniciando escáner...', 'info');
+        
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+        
+        // Configuración del escáner
+        const config = {
+            fps: 10, // Cuadros por segundo
+            qrbox: { width: 250, height: 250 }, // Área de escaneo
+            aspectRatio: 1.0,
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.QR_CODE,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.CODE_93,
+                Html5QrcodeSupportedFormats.CODABAR
+            ]
+        };
+        
+        // Preferir cámara trasera en móviles
+        const cameraConfig = { facingMode: "environment" };
+        
+        await html5QrCode.start(
+            cameraConfig,
+            config,
+            onScanSuccess,
+            onScanError
+        );
+        
+        // Actualizar interfaz
+        stopBtn.style.display = 'inline-block';
+        showStatus('Escaneando... Apunta al código de barras o QR', 'scanning');
+        
+    } catch (err) {
+        console.error('Error al iniciar escáner:', err);
+        showStatus('Error al iniciar la cámara. Verifica los permisos.', 'error');
+    }
+}
+
+async function stopScanner() {
+    try {
+        if (html5QrCode && html5QrCode.isScanning) {
+            await html5QrCode.stop();
+        }
+        stopBtn.style.display = 'none';
+    } catch (err) {
+        console.error('Error al detener escáner:', err);
+    }
+}
+
+function playBeep() {
+    // Crear un beep simple usando Web Audio API
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (e) {
+        // Silenciar errores de audio
+    }
+}
+
+// Mostrar notificación nativa cuando se encuentra un producto
+function notifyProductFound(product) {
+    if (!('Notification' in window)) {
+        return; // Notificaciones no soportadas
+    }
+
+    function showNotification() {
+        try {
+            const title = `Producto: ${product.name}`;
+            const body = `SKU: ${product.sku} — Precio: $${product.price.toFixed(2)}`;
+            const options = {
+                body: body,
+                icon: '/static/icons/icon-192x192.svg',
+                tag: `product-${product.id}`
+            };
+            const n = new Notification(title, options);
+            n.onclick = function (e) {
+                e.preventDefault();
+                window.focus();
+                window.location.href = product.url;
+            };
+            // Cerrar automáticamente
+            setTimeout(() => {
+                try { n.close(); } catch (e) {}
+            }, 8000);
+        } catch (err) {
+            console.error('Error mostrando notificación:', err);
+        }
+    }
+
+    if (Notification.permission === 'granted') {
+        showNotification();
+    } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') showNotification();
+        }).catch(err => console.warn('Permission request failed', err));
+    }
+}
+
+// Event listeners
+stopBtn.addEventListener('click', async () => {
+    await stopScanner();
+    showStatus('Escáner detenido', 'info');
+});
+
+scanAgainBtn.addEventListener('click', async () => {
+    resultContainer.style.display = 'none';
+    scanAgainBtn.style.display = 'none';
+    lastScannedCode = null;
+    await startScanner();
+});
+
+// Crear producto con el SKU escaneado desde el botón en los controles
+if (createBtn) {
+    createBtn.addEventListener('click', () => {
+        if (lastScannedCode) {
+            createProductWithSku(lastScannedCode);
+        }
+    });
+}
+
+// Asegurar ocultar botón crear al volver a escanear
+scanAgainBtn.addEventListener('click', () => {
+    if (createBtn) createBtn.style.display = 'none';
+});
+
+// Auto-iniciar el escáner al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    startScanner();
+});
+
+// Limpiar al salir
+window.addEventListener('beforeunload', async () => {
+    await stopScanner();
+});
+</script>
+{% endblock %}

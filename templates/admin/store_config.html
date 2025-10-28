@@ -1,0 +1,114 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Configuración de Tienda - ShopQR Admin{% endblock %}
+
+{% block admin_content %}
+<div class="store-config-container">
+    <div class="form-header">
+        <h2>Configuración de la Tienda</h2>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="config-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="config-sections">
+            <div class="config-section">
+                <h3>Información General</h3>
+                
+                <div class="form-group">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-input") }}
+                    {% if form.name.errors %}
+                        <div class="form-errors">
+                            {% for error in form.name.errors %}
+                                <span class="form-error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.phone.label(class="form-label") }}
+                    {{ form.phone(class="form-input") }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.email.label(class="form-label") }}
+                    {{ form.email(class="form-input") }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.address.label(class="form-label") }}
+                    {{ form.address(class="form-textarea", rows="3") }}
+                </div>
+
+                <div class="form-group">
+                    {{ form.website.label(class="form-label") }}
+                    {{ form.website(class="form-input", placeholder="https://...") }}
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>Logo de la Tienda</h3>
+                
+                {% if store.logo_url %}
+                    <div class="current-logo">
+                        <img src="{{ store.logo_url }}" alt="Logo actual">
+                        <p class="form-help">Logo actual</p>
+                    </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    {{ form.logo.label(class="form-label") }}
+                    {{ form.logo(class="form-input") }}
+                    <small class="form-help">Se redimensionará automáticamente a 200px de ancho</small>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>Configuración de Etiquetas</h3>
+                <p class="section-description">Personaliza qué información aparece en las etiquetas imprimibles</p>
+                
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        {{ form.label_show_logo(class="form-checkbox") }}
+                        {{ form.label_show_logo.label(class="form-label-inline") }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        {{ form.label_show_price(class="form-checkbox") }}
+                        {{ form.label_show_price.label(class="form-label-inline") }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        {{ form.label_show_sku(class="form-checkbox") }}
+                        {{ form.label_show_sku.label(class="form-label-inline") }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        {{ form.label_show_description(class="form-checkbox") }}
+                        {{ form.label_show_description.label(class="form-label-inline") }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    {{ form.label_font_size.label(class="form-label") }}
+                    {{ form.label_font_size(class="form-input", type="number", min="8", max="24") }}
+                    <small class="form-help">Tamaño de fuente para el texto de la etiqueta (8-24 px)</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Guardar Configuración</button>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "admin_app/base.html" %}
+
+{% block title %}{{ user.email }} - Usuario{% endblock %}
+{% block page_icon %}fas fa-user{% endblock %}
+{% block page_title %}Detalles del Usuario{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="{{ url_for('admin_app.user_list') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver a la lista</a>
+    <a href="{{ url_for('admin_app.user_edit', user_id=user.id) }}" class="btn btn-primary"><i class="fas fa-edit"></i> Editar</a>
+    {% if user.id != current_user.id %}
+        <form method="post" action="{{ url_for('admin_app.user_toggle_admin', user_id=user.id) }}" style="display: inline;">
+            <button type="submit" class="btn btn-secondary">
+                <i class="fas fa-user-shield"></i> {% if user.is_admin %}Quitar Admin{% else %}Hacer Admin{% endif %}
+            </button>
+        </form>
+        {% if user.product_count == 0 %}
+            <form method="post" action="{{ url_for('admin_app.user_delete', user_id=user.id) }}" style="display: inline;" 
+                  onsubmit="return confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.');">
+                <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Eliminar</button>
+            </form>
+        {% endif %}
+    {% endif %}
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
+    <!-- Información del usuario -->
+    <div class="card">
+        <div class="card-header"><i class="fas fa-info-circle"></i> Información General</div>
+        <div class="card-body">
+            <div style="margin-bottom: 15px;">
+                <strong style="display: block; color: #999999; margin-bottom: 5px;">ID:</strong>
+                <span>{{ user.id }}</span>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <strong style="display: block; color: #999999; margin-bottom: 5px;">Email:</strong>
+                <span>{{ user.email }}</span>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <strong style="display: block; color: #999999; margin-bottom: 5px;">Rol:</strong>
+                {% if user.is_superadmin %}
+                    <span class="badge badge-danger"><i class="fas fa-crown"></i> Super Administrador</span>
+                {% elif user.is_admin %}
+                    <span class="badge badge-info"><i class="fas fa-user-shield"></i> Administrador</span>
+                {% else %}
+                    <span class="badge" style="background: #666666; color: #ffffff;">Usuario</span>
+                {% endif %}
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <strong style="display: block; color: #999999; margin-bottom: 5px;">Fecha de Registro:</strong>
+                <span>{{ user.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Estadísticas -->
+    <div>
+        <div class="dashboard-widgets" style="margin-bottom: 20px;">
+            <div class="widget">
+                <div class="widget-label">Productos</div>
+                <div class="widget-value">{{ total_products }}</div>
+            </div>
+            
+            <div class="widget">
+                <div class="widget-label">Categorías</div>
+                <div class="widget-value">{{ total_categories }}</div>
+            </div>
+            
+            <div class="widget">
+                <div class="widget-label">Tienda</div>
+                <div class="widget-value">{% if store %}✓{% else %}✗{% endif %}</div>
+            </div>
+        </div>
+        
+        <!-- Tienda -->
+        {% if store %}
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header"><i class="fas fa-store"></i> Configuración de Tienda</div>
+            <div class="card-body">
+                <div style="margin-bottom: 10px;">
+                    <strong>Nombre:</strong> {{ store.name }}
+                </div>
+                {% if store.phone %}
+                <div style="margin-bottom: 10px;">
+                    <strong><i class="fas fa-phone"></i> Teléfono:</strong> {{ store.phone }}
+                </div>
+                {% endif %}
+                {% if store.email %}
+                <div style="margin-bottom: 10px;">
+                    <strong><i class="fas fa-envelope"></i> Email:</strong> {{ store.email }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Productos -->
+{% if products %}
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-box"></i> Productos Recientes ({{ total_products }} total)
+        <a href="{{ url_for('admin_app.product_list', user_id=user.id) }}" class="btn btn-primary" style="float: right; padding: 6px 12px; font-size: 12px;">
+            <i class="fas fa-list"></i> Ver todos
+        </a>
+    </div>
+    <div class="card-body">
+        <table class="wp-list-table">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Categoría</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr>
+                    <td><code>{{ product.sku }}</code></td>
+                    <td><strong>{{ product.name }}</strong></td>
+                    <td>{{ product.price_formatted }}</td>
+                    <td>{{ product.category.name if product.category else '-' }}</td>
+                    <td>
+                        {% if product.active %}
+                            <span class="badge badge-success">Activo</span>
+                        {% else %}
+                            <span class="badge badge-danger">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ product.created_at.strftime('%d/%m/%Y') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Categorías -->
+{% if categories %}
+<div class="card">
+    <div class="card-header"><i class="fas fa-folder"></i> Categorías ({{ total_categories }})</div>
+    <div class="card-body">
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            {% for category in categories %}
+                <span class="badge badge-info" style="padding: 8px 12px; font-size: 13px;">
+                    {{ category.name }}
+                </span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Iniciar Sesión - Tag2QR{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <h1><i class="fa-solid fa-qrcode"></i> Tag2QR</h1>
+        <h2>Iniciar Sesión</h2>
+        
+        <!-- Demo button -->
+        <div class="demo-info">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Prueba la plataforma con la cuenta demo</span>
+            <button type="button" class="btn-demo" onclick="fillDemoCredentials()">
+                <i class="fa-solid fa-user"></i> Usar Demo
+            </button>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="login-form">
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-input") }}
+                {% if form.email.errors %}
+                    <div class="form-errors">
+                        {% for error in form.email.errors %}
+                            <span class="form-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-input") }}
+                {% if form.password.errors %}
+                    <div class="form-errors">
+                        {% for error in form.password.errors %}
+                            <span class="form-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+        </form>
+
+        <div class="login-footer">
+            <p>¿No tienes cuenta? <a href="{{ url_for('auth.register') }}">Regístrate aquí</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function fillDemoCredentials() {
+    document.getElementById('email').value = 'demo@test.com';
+    document.getElementById('password').value = 'demo12345';
+    
+    // Agregar efecto visual
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    
+    emailInput.style.transition = 'background-color 0.3s';
+    passwordInput.style.transition = 'background-color 0.3s';
+    
+    emailInput.style.backgroundColor = '#e3f2fd';
+    passwordInput.style.backgroundColor = '#e3f2fd';
+    
+    setTimeout(() => {
+        emailInput.style.backgroundColor = '';
+        passwordInput.style.backgroundColor = '';
+    }, 1000);
+}
+</script>
+
+<style>
+.demo-info {
+    background: #e3f2fd;
+    border: 1px solid #2196f3;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+    font-size: 14px;
+}
+
+.demo-info i.fa-circle-info {
+    color: #2196f3;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.demo-info span {
+    flex: 1;
+    color: #1976d2;
+    font-weight: 500;
+}
+
+.btn-demo {
+    background: #2196f3;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.btn-demo:hover {
+    background: #1976d2;
+}
+
+.btn-demo:active {
+    transform: scale(0.98);
+}
+
+.login-footer {
+    text-align: center;
+    padding-top: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+    border-top: var(--border-width) solid #e5e5e5;
+}
+
+.login-footer p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.login-footer a {
+    color: black;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+</style>
+{% endblock %}

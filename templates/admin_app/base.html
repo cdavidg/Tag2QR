@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Panel de Administración{% endblock %} - Tag2QR</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* ========================================
+           TEMA OSCURO - BLANCO Y NEGRO
+           Reglas generales para todos los módulos
+           ======================================== */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+            background: #000000;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        
+        /* ========================================
+           SIDEBAR - Tema Oscuro
+           ======================================== */
+        .admin-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 200px;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow-y: auto;
+            z-index: 1000;
+            border-right: 1px solid #333333;
+            transition: width 0.3s;
+        }
+        
+        .sidebar-logo {
+            padding: 20px 15px;
+            background: #000000;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #ffffff;
+            text-decoration: none;
+            display: block;
+            border-bottom: 1px solid #333333;
+        }
+        
+        .sidebar-logo i {
+            margin-right: 8px;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 10px 0;
+        }
+        
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #999999;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .sidebar-menu li a:hover {
+            background: #2a2a2a;
+            color: #ffffff;
+        }
+        
+        .sidebar-menu li a.active {
+            background: #ffffff;
+            color: #000000;
+            font-weight: 600;
+        }
+        
+        .sidebar-menu li a i {
+            width: 20px;
+            margin-right: 12px;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        .sidebar-divider {
+            margin-top: 20px;
+            border-top: 1px solid #333333;
+            padding-top: 10px;
+        }
+        
+        /* ========================================
+           HEADER - Tema Oscuro
+           ======================================== */
+        .admin-header {
+            position: fixed;
+            left: 200px;
+            right: 0;
+            top: 0;
+            height: 60px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            z-index: 999;
+        }
+        
+        .admin-header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .admin-header h1 i {
+            font-size: 20px;
+        }
+        
+        .admin-header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .admin-header .user-email {
+            font-size: 14px;
+            color: #999999;
+        }
+        
+        .admin-header .btn-logout {
+            padding: 8px 16px;
+            background: #ffffff;
+            color: #000000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .admin-header .btn-logout:hover {
+            background: #cccccc;
+        }
+        
+        /* ========================================
+           CONTENT AREA - Tema Oscuro
+           ======================================== */
+        .admin-content {
+            margin-left: 200px;
+            margin-top: 60px;
+            padding: 30px;
+            min-height: calc(100vh - 60px);
+            background: #0a0a0a;
+        }
+        
+        /* ========================================
+           CARDS - Tema Oscuro
+           ======================================== */
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .card-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #333333;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-header i {
+            font-size: 18px;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* ========================================
+           BOTONES - Tema Oscuro (Solo B&N)
+           ======================================== */
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border: 1px solid;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn i {
+            margin-right: 6px;
+        }
+        
+        .btn-primary {
+            background: #ffffff;
+            border-color: #ffffff;
+            color: #000000;
+        }
+        
+        .btn-primary:hover {
+            background: #cccccc;
+            border-color: #cccccc;
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border-color: #666666;
+            color: #999999;
+        }
+        
+        .btn-secondary:hover {
+            background: #2a2a2a;
+            border-color: #999999;
+            color: #ffffff;
+        }
+        
+        .btn-danger {
+            background: #000000;
+            border-color: #ffffff;
+            color: #ffffff;
+        }
+        
+        .btn-danger:hover {
+            background: #ffffff;
+            color: #000000;
+        }
+        
+        .btn-success {
+            background: #ffffff;
+            border-color: #ffffff;
+            color: #000000;
+        }
+        
+        .btn-success:hover {
+            background: #e6e6e6;
+        }
+        
+        /* ========================================
+           TABLAS - Tema Oscuro
+           ======================================== */
+        .wp-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #1a1a1a;
+        }
+        
+        .wp-list-table thead th {
+            background: #0a0a0a;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 2px solid #333333;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .wp-list-table tbody td {
+            padding: 14px 15px;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 13px;
+            color: #cccccc;
+        }
+        
+        .wp-list-table tbody tr:hover {
+            background: #2a2a2a;
+        }
+        
+        .wp-list-table a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .wp-list-table a:hover {
+            text-decoration: underline;
+        }
+        
+        /* ========================================
+           WIDGETS DEL DASHBOARD - Tema Oscuro
+           ======================================== */
+        .dashboard-widgets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .widget {
+            background: #1a1a1a;
+            border: 1px solid #333333;
+            border-radius: 6px;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .widget-value {
+            font-size: 42px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 10px 0;
+        }
+        
+        .widget-label {
+            font-size: 13px;
+            color: #999999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        /* ========================================
+           MENSAJES FLASH - Tema Oscuro
+           ======================================== */
+        .alert {
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+            border-radius: 4px;
+            background: #1a1a1a;
+        }
+        
+        .alert-success {
+            border-color: #ffffff;
+            color: #ffffff;
+        }
+        
+        .alert-danger {
+            border-color: #666666;
+            color: #cccccc;
+        }
+        
+        .alert-warning {
+            border-color: #999999;
+            color: #cccccc;
+        }
+        
+        .alert-info {
+            border-color: #cccccc;
+            color: #ffffff;
+        }
+        
+        /* ========================================
+           FORMULARIOS - Tema Oscuro
+           ======================================== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #ffffff;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #333333;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #0a0a0a;
+            color: #ffffff;
+            transition: all 0.2s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #ffffff;
+            background: #1a1a1a;
+        }
+        
+        .form-control::placeholder {
+            color: #666666;
+        }
+        
+        select.form-control {
+            cursor: pointer;
+        }
+        
+        input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        
+        /* ========================================
+           BADGES - Tema Oscuro (Solo B&N)
+           ======================================== */
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-success {
+            background: #ffffff;
+            color: #000000;
+        }
+        
+        .badge-danger {
+            background: #000000;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+        }
+        
+        .badge-warning {
+            background: #666666;
+            color: #ffffff;
+        }
+        
+        .badge-info {
+            background: #cccccc;
+            color: #000000;
+        }
+        
+        /* ========================================
+           PAGINACIÓN - Tema Oscuro
+           ======================================== */
+        .pagination {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .pagination a,
+        .pagination span {
+            padding: 8px 14px;
+            border: 1px solid #333333;
+            background: #1a1a1a;
+            color: #999999;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .pagination a:hover {
+            background: #2a2a2a;
+            color: #ffffff;
+            border-color: #666666;
+        }
+        
+        .pagination .active {
+            background: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+            font-weight: 600;
+        }
+        
+        /* ========================================
+           CÓDIGO Y ELEMENTOS ESPECIALES
+           ======================================== */
+        code {
+            background: #0a0a0a;
+            color: #ffffff;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: 1px solid #333333;
+        }
+        
+        small {
+            color: #999999;
+        }
+        
+        strong {
+            color: #ffffff;
+        }
+        
+        /* ========================================
+           RESPONSIVE
+           ======================================== */
+        @media (max-width: 768px) {
+            .admin-sidebar {
+                width: 60px;
+            }
+            
+            .admin-header {
+                left: 60px;
+            }
+            
+            .admin-content {
+                margin-left: 60px;
+            }
+            
+            .sidebar-menu li a .text {
+                display: none;
+            }
+            
+            .admin-sidebar:hover {
+                width: 200px;
+            }
+            
+            .admin-sidebar:hover .sidebar-menu li a .text {
+                display: inline;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+        <a href="{{ url_for('admin_app.dashboard') }}" class="sidebar-logo">
+            <i class="fas fa-qrcode"></i> Tag2QR
+        </a>
+        <ul class="sidebar-menu">
+            <li>
+                <a href="{{ url_for('admin_app.dashboard') }}" class="{% if request.endpoint == 'admin_app.dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="text">Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_app.user_list') }}" class="{% if 'user' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    <span class="text">Usuarios</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_app.product_list') }}" class="{% if 'product' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-box"></i>
+                    <span class="text">Productos</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_app.store_list') }}" class="{% if 'store' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-store"></i>
+                    <span class="text">Tiendas</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_app.stats') }}" class="{% if request.endpoint == 'admin_app.stats' %}active{% endif %}">
+                    <i class="fas fa-chart-bar"></i>
+                    <span class="text">Estadísticas</span>
+                </a>
+            </li>
+            <li class="sidebar-divider">
+                <a href="{{ url_for('admin.dashboard') }}">
+                    <i class="fas fa-arrow-left"></i>
+                    <span class="text">Mi Panel</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+    
+    <!-- Header -->
+    <header class="admin-header">
+        <h1>
+            <i class="{% block page_icon %}fas fa-cog{% endblock %}"></i>
+            {% block page_title %}Panel de Administración{% endblock %}
+        </h1>
+        <div class="user-info">
+            <span class="user-email">
+                <i class="fas fa-user-shield"></i> {{ current_user.email }}
+            </span>
+            <a href="{{ url_for('auth.logout') }}" class="btn-logout">
+                <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+            </a>
+        </div>
+    </header>
+    
+    <!-- Content -->
+    <main class="admin-content">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,484 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} - ShopQR Admin{% endblock %}
+
+{% block admin_content %}
+<div class="product-form-container">
+    <div class="form-header">
+        <h2>{{ title }}</h2>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">← Volver</a>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="product-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-grid">
+            <div class="form-section">
+                <h3>Información Básica</h3>
+                
+                <div class="form-group">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-input") }}
+                    {% if form.name.errors %}
+                        <div class="form-errors">
+                            {% for error in form.name.errors %}
+                                <span class="form-error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.sku.label(class="form-label") }}
+                    <div class="input-with-button">
+                        {{ form.sku(class="form-input", id="sku-input") }}
+                        <a href="{{ url_for('admin.barcode_scanner') }}" class="btn btn-outline">
+                            Escanear Código
+                        </a>
+                    </div>
+                    <small class="form-help">Identificador único del producto. Usa el escáner para leer códigos de barras.</small>
+                    {% if form.sku.errors %}
+                        <div class="form-errors">
+                            {% for error in form.sku.errors %}
+                                <span class="form-error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    {{ form.category_id.label(class="form-label") }}
+                    {{ form.category_id(class="form-input") }}
+                    <small class="form-help">Categoría del producto (opcional)</small>
+                </div>
+
+                <div class="form-group">
+                    {{ form.price.label(class="form-label") }}
+                    {{ form.price(class="form-input", step="0.01") }}
+                    {% if form.price.errors %}
+                        <div class="form-errors">
+                            {% for error in form.price.errors %}
+                                <span class="form-error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        {{ form.active(class="form-checkbox") }}
+                        {{ form.active.label(class="form-label-inline") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Descripción</h3>
+                
+                <div class="form-group">
+                    {{ form.description.label(class="form-label") }}
+                    {{ form.description(class="form-textarea", rows="6") }}
+                    {% if form.description.errors %}
+                        <div class="form-errors">
+                            {% for error in form.description.errors %}
+                                <span class="form-error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Imágenes</h3>
+                
+                {% if product and product.images %}
+                    <div class="current-images">
+                        <h4>Imágenes actuales</h4>
+                        <div class="images-grid">
+                            {% for image in product.images %}
+                                <div class="image-item" data-image-id="{{ image.id }}">
+                                    <img src="{{ image.thumbnail_url }}" alt="Imagen del producto">
+                                    <button type="button" class="btn-delete-image" onclick="deleteImage({{ image.id }})">×</button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <!-- Opciones de carga de imágenes -->
+                <div class="image-upload-options">
+                    <button type="button" class="btn btn-outline" onclick="openCamera()">
+                        <i class="fas fa-camera"></i> Capturar con Cámara
+                    </button>
+                    <label class="btn btn-outline" style="margin: 0;">
+                        <i class="fas fa-folder-open"></i> Seleccionar Archivos
+                        {{ form.images(class="form-input-hidden", multiple=True, accept="image/*", id="file-input", onchange="handleFileSelect(event)") }}
+                    </label>
+                </div>
+                <small class="form-help">Puedes capturar fotos con la cámara o seleccionar archivos. Formatos: JPG, PNG, WEBP</small>
+                
+                <!-- Previsualización de nuevas imágenes -->
+                <div id="new-images-preview" class="new-images-preview" style="display: none;">
+                    <h4>Nuevas imágenes a subir</h4>
+                    <div id="preview-grid" class="images-grid"></div>
+                </div>
+
+                <!-- Modal de cámara -->
+                <div id="camera-modal" class="camera-modal" style="display: none;">
+                    <div class="camera-modal-content">
+                        <div class="camera-modal-header">
+                            <h3>Capturar Foto</h3>
+                            <button type="button" class="btn-close" onclick="closeCamera()">×</button>
+                        </div>
+                        <div class="camera-container">
+                            <video id="camera-video" autoplay playsinline></video>
+                            <canvas id="camera-canvas" style="display: none;"></canvas>
+                        </div>
+                        <div class="camera-controls">
+                            <button type="button" class="btn btn-primary" onclick="capturePhoto()">
+                                <i class="fas fa-camera"></i> Tomar Foto
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="closeCamera()">
+                                <i class="fas fa-times"></i> Cerrar
+                            </button>
+                        </div>
+                        <div id="camera-error" class="camera-error" style="display: none;"></div>
+                    </div>
+                </div>
+
+                {% if form.images.errors %}
+                    <div class="form-errors">
+                        {% for error in form.images.errors %}
+                            <span class="form-error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                {% if product %}Actualizar Producto{% else %}Crear Producto{% endif %}
+            </button>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Variables globales para la cámara
+let videoStream = null;
+let capturedImages = [];
+
+function deleteImage(imageId) {
+    if (confirm('¿Estás seguro de que quieres eliminar esta imagen?')) {
+        fetch(`/admin/product-image/${imageId}/delete`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.querySelector(`[data-image-id="${imageId}"]`).remove();
+            } else {
+                alert('Error al eliminar la imagen');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar la imagen');
+        });
+    }
+}
+
+// Abrir modal de cámara
+async function openCamera() {
+    const modal = document.getElementById('camera-modal');
+    const video = document.getElementById('camera-video');
+    const errorDiv = document.getElementById('camera-error');
+    
+    modal.style.display = 'flex';
+    errorDiv.style.display = 'none';
+    
+    // Verificar contexto seguro (HTTPS)
+    const isSecureContext = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    
+    if (!isSecureContext) {
+        errorDiv.innerHTML = `<strong>⚠️ Conexión No Segura:</strong><br>
+            La cámara requiere HTTPS para funcionar en Chrome móvil.<br><br>
+            <strong>Opciones:</strong><br>
+            1. Accede usando <code>https://</code><br>
+            2. Usa localhost en lugar de la IP (si es desarrollo local)<br>
+            3. Configura un certificado SSL`;
+        errorDiv.style.display = 'block';
+        return;
+    }
+    
+    try {
+        // Verificar si el navegador soporta getUserMedia
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Tu navegador no soporta acceso a la cámara. Actualiza Chrome a la última versión.');
+        }
+
+        // Detectar si es móvil
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // Configuración optimizada para Chrome móvil
+        let constraints = {
+            video: {
+                facingMode: isMobile ? { ideal: 'environment' } : 'user',
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 },
+                aspectRatio: { ideal: 16/9 }
+            },
+            audio: false
+        };
+        
+        console.log('Intentando acceder a la cámara con constraints:', constraints);
+        
+        try {
+            // Primer intento: con configuración preferida
+            videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+            console.log('✓ Acceso a cámara exitoso');
+        } catch (err) {
+            console.warn('Primer intento falló:', err.name, err.message);
+            
+            // Segundo intento: sin especificar facingMode
+            console.log('Intentando sin facingMode específico...');
+            constraints = {
+                video: {
+                    width: { min: 640, ideal: 1280 },
+                    height: { min: 480, ideal: 720 }
+                },
+                audio: false
+            };
+            
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('✓ Acceso a cámara exitoso (sin facingMode)');
+            } catch (err2) {
+                console.warn('Segundo intento falló:', err2.name, err2.message);
+                
+                // Tercer intento: configuración mínima (Chrome móvil a veces necesita esto)
+                console.log('Intentando con configuración mínima...');
+                constraints = { video: true, audio: false };
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                console.log('✓ Acceso a cámara exitoso (configuración mínima)');
+            }
+        }
+        
+        // Configurar el video
+        video.srcObject = videoStream;
+        video.setAttribute('playsinline', 'true'); // Importante para iOS/Chrome móvil
+        video.setAttribute('autoplay', 'true');
+        video.muted = true; // Evita problemas de autoplay
+        
+        // Esperar a que el video esté listo y reproducir
+        video.onloadedmetadata = () => {
+            video.play().then(() => {
+                console.log('✓ Video reproduciéndose');
+            }).catch(playErr => {
+                console.error('Error al reproducir video:', playErr);
+                errorDiv.innerHTML = `<strong>⚠️ Error de reproducción:</strong><br>No se pudo iniciar el video. Intenta recargar la página.`;
+                errorDiv.style.display = 'block';
+            });
+        };
+        
+        // Timeout por si el video no carga
+        setTimeout(() => {
+            if (video.readyState < 2) {
+                console.warn('Video tardando en cargar...');
+                errorDiv.innerHTML = `<strong>⏳ Cargando cámara...</strong><br>Si tarda mucho, cierra otras apps que usen la cámara.`;
+                errorDiv.style.display = 'block';
+            }
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Error final al acceder a la cámara:', error);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        
+        let errorMessage = '<strong>⚠️ No se pudo acceder a la cámara</strong><br><br>';
+        
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            errorMessage += `<strong>Permisos denegados.</strong><br><br>
+                Para habilitar la cámara en Chrome móvil:<br>
+                1. Toca el <strong>candado 🔒</strong> o <strong>ℹ️</strong> al lado de la URL<br>
+                2. Busca "Cámara" en los permisos<br>
+                3. Selecciona <strong>"Permitir"</strong><br>
+                4. Recarga la página<br><br>
+                O ve a: <code>chrome://settings/content/camera</code>`;
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+            errorMessage += '<strong>No se encontró ninguna cámara.</strong><br>Verifica que tu dispositivo tenga cámara.';
+        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+            errorMessage += `<strong>Cámara en uso.</strong><br><br>
+                La cámara está siendo usada por otra app.<br>
+                • Cierra otras apps (Instagram, WhatsApp, etc.)<br>
+                • Cierra otras pestañas que usen la cámara<br>
+                • Reinicia el navegador`;
+        } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+            errorMessage += '<strong>Configuración no soportada.</strong><br>Tu cámara no soporta la resolución solicitada.';
+        } else if (error.name === 'TypeError') {
+            errorMessage += '<strong>Error de conexión.</strong><br>Verifica tu conexión a internet y recarga la página.';
+        } else if (error.name === 'SecurityError') {
+            errorMessage += `<strong>Error de seguridad.</strong><br>
+                La cámara requiere HTTPS.<br>
+                URL actual: <code>${location.protocol}//${location.host}</code><br><br>
+                Accede usando HTTPS o localhost.`;
+        } else {
+            errorMessage += `<strong>Error desconocido:</strong><br>
+                ${error.message}<br><br>
+                <strong>Intenta:</strong><br>
+                • Recargar la página (F5)<br>
+                • Actualizar Chrome a la última versión<br>
+                • Reiniciar el navegador<br>
+                • Verificar permisos del sitio`;
+        }
+        
+        errorDiv.innerHTML = errorMessage;
+        errorDiv.style.display = 'block';
+    }
+}
+
+// Cerrar cámara
+function closeCamera() {
+    const modal = document.getElementById('camera-modal');
+    const video = document.getElementById('camera-video');
+    
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+    }
+    
+    video.srcObject = null;
+    modal.style.display = 'none';
+}
+
+// Capturar foto
+function capturePhoto() {
+    const video = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Configurar canvas con el tamaño del video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Dibujar el frame actual del video en el canvas
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convertir canvas a blob
+    canvas.toBlob(blob => {
+        if (blob) {
+            const fileName = `camera-${Date.now()}.jpg`;
+            const file = new File([blob], fileName, { type: 'image/jpeg' });
+            
+            // Agregar a la lista de imágenes capturadas
+            capturedImages.push(file);
+            
+            // Actualizar previsualización
+            updatePreview();
+            
+            // Cerrar cámara
+            closeCamera();
+        }
+    }, 'image/jpeg', 0.9);
+}
+
+// Manejar selección de archivos
+function handleFileSelect(event) {
+    const files = Array.from(event.target.files);
+    capturedImages.push(...files);
+    updatePreview();
+}
+
+// Actualizar previsualización de imágenes
+function updatePreview() {
+    const previewContainer = document.getElementById('new-images-preview');
+    const previewGrid = document.getElementById('preview-grid');
+    
+    if (capturedImages.length === 0) {
+        previewContainer.style.display = 'none';
+        return;
+    }
+    
+    previewContainer.style.display = 'block';
+    previewGrid.innerHTML = '';
+    
+    capturedImages.forEach((file, index) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            const imageItem = document.createElement('div');
+            imageItem.className = 'image-item';
+            imageItem.innerHTML = `
+                <img src="${e.target.result}" alt="Preview ${index + 1}">
+                <button type="button" class="btn-delete-image" onclick="removePreviewImage(${index})">×</button>
+            `;
+            previewGrid.appendChild(imageItem);
+        };
+        
+        reader.readAsDataURL(file);
+    });
+}
+
+// Eliminar imagen de la previsualización
+function removePreviewImage(index) {
+    capturedImages.splice(index, 1);
+    updatePreview();
+}
+
+// Antes de enviar el formulario, agregar todas las imágenes
+document.querySelector('.product-form').addEventListener('submit', function(e) {
+    if (capturedImages.length > 0) {
+        const fileInput = document.getElementById('file-input');
+        const dataTransfer = new DataTransfer();
+        
+        // Agregar todas las imágenes capturadas al input
+        capturedImages.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        
+        fileInput.files = dataTransfer.files;
+    }
+});
+
+// Recuperar SKU escaneado desde sessionStorage
+window.addEventListener('DOMContentLoaded', () => {
+    const skuInput = document.getElementById('sku-input');
+    const scannedSku = sessionStorage.getItem('scanned_sku');
+    
+    if (scannedSku && skuInput) {
+        // Sobrescribir el campo SKU con el valor escaneado
+        skuInput.value = scannedSku;
+        skuInput.focus();
+        
+        // Mostrar mensaje de éxito
+        const message = document.createElement('div');
+        message.className = 'flash-message flash-success';
+        message.textContent = `✓ SKU escaneado: ${scannedSku}`;
+        message.style.margin = '0 0 1rem 0';
+        skuInput.parentElement.parentElement.insertBefore(message, skuInput.parentElement);
+        
+    // Limpiar sessionStorage
+    sessionStorage.removeItem('scanned_sku');
+        
+        // Ocultar mensaje después de 5 segundos
+        setTimeout(() => {
+            message.style.transition = 'opacity 0.3s';
+            message.style.opacity = '0';
+            setTimeout(() => message.remove(), 300);
+        }, 5000);
+    }
+});
+
+// Cerrar cámara al presionar ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && videoStream) {
+        closeCamera();
+    }
+});
+</script>
+{% endblock %}

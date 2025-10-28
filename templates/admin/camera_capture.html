@@ -1,0 +1,304 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Capturar Foto - ShopQR{% endblock %}
+
+{% block content %}
+<div class="camera-container">
+    <div class="camera-header">
+        <h1>Capturar Foto</h1>
+        <p>Toma una foto del producto con tu cámara</p>
+    </div>
+
+    <div class="camera-interface">
+        <div class="video-container">
+            <video id="camera-video" autoplay playsinline></video>
+            <canvas id="camera-canvas" style="display: none;"></canvas>
+        </div>
+
+        <div class="camera-preview" id="preview-container" style="display: none;">
+            <img id="preview-image" alt="Vista previa">
+        </div>
+
+        <div class="camera-controls">
+            <button type="button" class="btn btn-primary" id="start-camera" style="display: none;">
+                Activar Cámara
+            </button>
+            
+            <button type="button" class="btn btn-primary" id="capture-btn" style="display: none;">
+                Capturar Foto
+            </button>
+            
+            <div id="retake-save-buttons" style="display: none;">
+                <button type="button" class="btn btn-outline" id="retake-btn">
+                    Tomar Otra
+                </button>
+                <button type="button" class="btn btn-primary" id="save-btn">
+                    Guardar Foto
+                </button>
+            </div>
+
+            <button type="button" class="btn btn-outline" id="cancel-btn">
+                Cancelar
+            </button>
+        </div>
+
+        <div class="camera-status" id="status-message"></div>
+    </div>
+</div>
+
+<style>
+.camera-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+}
+
+.camera-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.camera-header h1 {
+    margin-bottom: var(--spacing-sm);
+}
+
+.camera-header p {
+    color: #666;
+    margin: 0;
+}
+
+.camera-interface {
+    border: var(--border-width) solid black;
+    padding: var(--spacing-lg);
+    background: white;
+}
+
+.video-container {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto var(--spacing-lg);
+    background: black;
+    border: var(--border-width) solid black;
+    aspect-ratio: 4/3;
+}
+
+#camera-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-preview {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto var(--spacing-lg);
+    border: var(--border-width) solid black;
+}
+
+#preview-image {
+    width: 100%;
+    display: block;
+}
+
+.camera-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    justify-content: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+#retake-save-buttons {
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.scanner-status {
+    text-align: center;
+    padding: var(--spacing-md);
+    min-height: 24px;
+    font-size: 14px;
+}
+
+.status-error {
+    color: #d32f2f;
+}
+
+.status-success {
+    color: #4CAF50;
+}
+
+.status-info {
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .camera-container {
+        padding: var(--spacing-md);
+    }
+    
+    .camera-controls {
+        flex-direction: column;
+    }
+    
+    .camera-controls .btn {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+let videoStream = null;
+let productId = {{ product_id if product_id else 'null' }};
+
+const video = document.getElementById('camera-video');
+const canvas = document.getElementById('camera-canvas');
+const previewContainer = document.getElementById('preview-container');
+const previewImage = document.getElementById('preview-image');
+const statusMessage = document.getElementById('status-message');
+
+const startCameraBtn = document.getElementById('start-camera');
+const captureBtn = document.getElementById('capture-btn');
+const retakeSaveButtons = document.getElementById('retake-save-buttons');
+const retakeBtn = document.getElementById('retake-btn');
+const saveBtn = document.getElementById('save-btn');
+const cancelBtn = document.getElementById('cancel-btn');
+
+// Iniciar cámara automáticamente
+window.addEventListener('DOMContentLoaded', () => {
+    startCamera();
+});
+
+function showStatus(message, type = 'info') {
+    statusMessage.textContent = message;
+    statusMessage.className = `camera-status status-${type}`;
+}
+
+async function startCamera() {
+    try {
+        showStatus('Activando cámara...', 'info');
+        
+        const constraints = {
+            video: {
+                facingMode: 'environment', // Usar cámara trasera en móviles
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            }
+        };
+        
+        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = videoStream;
+        
+        video.onloadedmetadata = () => {
+            captureBtn.style.display = 'inline-block';
+            showStatus('Cámara lista. Toma una foto del producto.', 'success');
+        };
+        
+    } catch (error) {
+        console.error('Error al acceder a la cámara:', error);
+        showStatus('No se pudo acceder a la cámara. Verifica los permisos.', 'error');
+        startCameraBtn.style.display = 'inline-block';
+    }
+}
+
+function stopCamera() {
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+    }
+}
+
+captureBtn.addEventListener('click', () => {
+    // Configurar canvas con las dimensiones del video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Capturar frame del video
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    // Convertir a imagen
+    const imageData = canvas.toDataURL('image/jpeg', 0.85);
+    previewImage.src = imageData;
+    
+    // Mostrar preview y ocultar video
+    video.style.display = 'none';
+    previewContainer.style.display = 'block';
+    captureBtn.style.display = 'none';
+    retakeSaveButtons.style.display = 'flex';
+    
+    showStatus('Foto capturada. ¿Deseas guardarla?', 'info');
+});
+
+retakeBtn.addEventListener('click', () => {
+    // Volver a mostrar video
+    video.style.display = 'block';
+    previewContainer.style.display = 'none';
+    captureBtn.style.display = 'inline-block';
+    retakeSaveButtons.style.display = 'none';
+    
+    showStatus('Toma otra foto del producto.', 'info');
+});
+
+saveBtn.addEventListener('click', async () => {
+    if (!productId) {
+        showStatus('Error: No se especificó el producto.', 'error');
+        return;
+    }
+    
+    saveBtn.disabled = true;
+    showStatus('Guardando foto...', 'info');
+    
+    try {
+        const imageData = previewImage.src;
+        
+        const response = await fetch('/admin/camera-capture/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                image: imageData,
+                product_id: productId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showStatus('¡Foto guardada exitosamente!', 'success');
+            stopCamera();
+            
+            // Redirigir al producto después de 1 segundo
+            setTimeout(() => {
+                window.location.href = `/admin/product/${productId}`;
+            }, 1000);
+        } else {
+            showStatus(`Error: ${result.error}`, 'error');
+            saveBtn.disabled = false;
+        }
+        
+    } catch (error) {
+        console.error('Error al guardar:', error);
+        showStatus('Error al guardar la foto. Intenta de nuevo.', 'error');
+        saveBtn.disabled = false;
+    }
+});
+
+cancelBtn.addEventListener('click', () => {
+    stopCamera();
+    if (productId) {
+        window.location.href = `/admin/product/${productId}`;
+    } else {
+        window.location.href = '/admin/';
+    }
+});
+
+// Limpiar al salir
+window.addEventListener('beforeunload', () => {
+    stopCamera();
+});
+</script>
+{% endblock %}

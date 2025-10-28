@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Tag2QR{% endblock %}
+{% block body_class %}public mobile{% endblock %}
+
+{% block content %}
+<div class="product-container">
+    <header class="product-header">
+        <h1 class="product-title">{{ product.name }}</h1>
+        <div class="product-meta">
+            <span class="product-price">{{ product.price_formatted }}</span>
+            <span class="product-sku">SKU: {{ product.sku }}</span>
+        </div>
+    </header>
+
+    {% if product.images %}
+        <div class="product-gallery">
+            <div class="gallery-container">
+                {% for image in product.images %}
+                    <div class="gallery-slide">
+                        <img src="{{ image.url }}" alt="{{ product.name }}" loading="lazy">
+                    </div>
+                {% endfor %}
+            </div>
+            
+            {% if product.images|length > 1 %}
+                <div class="gallery-dots">
+                    {% for image in product.images %}
+                        <button class="gallery-dot" data-slide="{{ loop.index0 }}"></button>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    {% if product.description %}
+        <div class="product-description">
+            <h2>Descripción</h2>
+            <div class="description-content">
+                {{ product.description }}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="product-actions">
+        <button onclick="shareProduct()" class="btn btn-primary btn-block">Compartir Producto</button>
+    </div>
+
+    <footer class="product-footer">
+        <p>Powered by Tag2QR</p>
+    </footer>
+</div>
+
+<script>
+// Gallery functionality
+let currentSlide = 0;
+const slides = document.querySelectorAll('.gallery-slide');
+const dots = document.querySelectorAll('.gallery-dot');
+
+function showSlide(index) {
+    if (slides.length === 0) return;
+    
+    // Hide all slides
+    slides.forEach(slide => slide.style.display = 'none');
+    dots.forEach(dot => dot.classList.remove('active'));
+    
+    // Show current slide
+    if (slides[index]) {
+        slides[index].style.display = 'block';
+        if (dots[index]) {
+            dots[index].classList.add('active');
+        }
+    }
+}
+
+// Initialize gallery
+if (slides.length > 0) {
+    showSlide(0);
+    
+    // Add click handlers to dots
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            currentSlide = index;
+            showSlide(currentSlide);
+        });
+    });
+    
+    // Add swipe support for mobile
+    let startX = 0;
+    let endX = 0;
+    
+    const gallery = document.querySelector('.gallery-container');
+    if (gallery) {
+        gallery.addEventListener('touchstart', e => {
+            startX = e.touches[0].clientX;
+        });
+        
+        gallery.addEventListener('touchend', e => {
+            endX = e.changedTouches[0].clientX;
+            handleSwipe();
+        });
+    }
+    
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = startX - endX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0 && currentSlide < slides.length - 1) {
+                // Swipe left - next slide
+                currentSlide++;
+            } else if (diff < 0 && currentSlide > 0) {
+                // Swipe right - previous slide
+                currentSlide--;
+            }
+            showSlide(currentSlide);
+        }
+    }
+}
+
+// Share functionality
+function shareProduct() {
+    const shareData = {
+        title: '{{ product.name }}',
+        text: '{{ product.name }} - {{ product.price_formatted }}',
+        url: '{{ share_url }}'
+    };
+    
+    if (navigator.share) {
+        navigator.share(shareData);
+    } else {
+        // Fallback for browsers that don't support Web Share API
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText('{{ share_url }}').then(() => {
+                alert('Enlace copiado al portapapeles');
+            });
+        } else {
+            // Final fallback
+            const textArea = document.createElement('textarea');
+            textArea.value = '{{ share_url }}';
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            alert('Enlace copiado al portapapeles');
+        }
+    }
+}
+</script>
+{% endblock %}

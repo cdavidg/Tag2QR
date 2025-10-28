@@ -1,0 +1,111 @@
+{% extends "admin_app/base.html" %}
+
+{% block title %}Productos - Super Admin{% endblock %}
+{% block page_icon %}fas fa-box{% endblock %}
+{% block page_title %}Todos los Productos{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <span><i class="fas fa-list"></i> Lista de Productos</span>
+    </div>
+    
+    <div class="card-body">
+        <!-- Filtros -->
+        <form method="get" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="text" 
+                   name="search" 
+                   class="form-control" 
+                   placeholder="Buscar por nombre o SKU..." 
+                   value="{{ search }}"
+                   style="max-width: 300px;">
+            
+            <select name="user_id" class="form-control" style="max-width: 250px;">
+                <option value="">Todos los usuarios</option>
+                {% for u in users %}
+                    <option value="{{ u.id }}" {% if selected_user == u.id %}selected{% endif %}>
+                        {{ u.email }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+            {% if search or selected_user %}
+                <a href="{{ url_for('admin_app.product_list') }}" class="btn btn-secondary"><i class="fas fa-times"></i> Limpiar</a>
+            {% endif %}
+        </form>
+        
+        <!-- Tabla -->
+        {% if products.items %}
+            <table class="wp-list-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>SKU</th>
+                        <th>Nombre</th>
+                        <th>Precio</th>
+                        <th>Propietario</th>
+                        <th>Categoría</th>
+                        <th>Estado</th>
+                        <th>Creado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products.items %}
+                    <tr>
+                        <td>{{ product.id }}</td>
+                        <td><code>{{ product.sku }}</code></td>
+                        <td><strong>{{ product.name }}</strong></td>
+                        <td>{{ product.price_formatted }}</td>
+                        <td>
+                            <a href="{{ url_for('admin_app.user_detail', user_id=product.owner.id) }}" 
+                               style="color: #2271b1; text-decoration: none;">
+                                {{ product.owner.email }}
+                            </a>
+                        </td>
+                        <td>{{ product.category.name if product.category else '-' }}</td>
+                        <td>
+                            {% if product.active %}
+                                <span class="badge badge-success">Activo</span>
+                            {% else %}
+                                <span class="badge badge-danger">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ product.created_at.strftime('%d/%m/%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Paginación -->
+            {% if products.pages > 1 %}
+                <div class="pagination">
+                    {% if products.has_prev %}
+                        <a href="{{ url_for('admin_app.product_list', page=products.prev_num, search=search, user_id=selected_user) }}">« Anterior</a>
+                    {% endif %}
+                    
+                    {% for page_num in products.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            {% if page_num == products.page %}
+                                <span class="active">{{ page_num }}</span>
+                            {% else %}
+                                <a href="{{ url_for('admin_app.product_list', page=page_num, search=search, user_id=selected_user) }}">{{ page_num }}</a>
+                            {% endif %}
+                        {% else %}
+                            <span>...</span>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if products.has_next %}
+                        <a href="{{ url_for('admin_app.product_list', page=products.next_num, search=search, user_id=selected_user) }}">Siguiente »</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <p style="text-align: center; padding: 40px; color: #646970;">
+                No se encontraron productos.
+            </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

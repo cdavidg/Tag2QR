@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Tag2QR{% endblock %}
+{% block body_class %}admin{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-nav">
+            <div class="admin-nav-header">
+                <h1>
+                    <a href="{{ url_for('admin.dashboard') }}">
+                        <i class="fa-solid fa-qrcode"></i> Tag2QR
+                    </a>
+                    {% if current_user.email == 'demo@test.com' %}
+                        <span class="demo-badge">Demo</span>
+                    {% endif %}
+                </h1>
+            </div>
+            <nav class="admin-nav-menu" id="adminNavMenu">
+                <a href="{{ url_for('admin.dashboard') }}" class="nav-link-dashboard" title="Dashboard">
+                    <i class="fas fa-home"></i>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+                
+                <!-- Menú de Usuario con Dropdown -->
+                <div class="user-menu-dropdown">
+                    <button class="user-menu-toggle" onclick="toggleUserMenu(event)" aria-label="Menú de usuario">
+                        <i class="fas fa-user-circle"></i>
+                        <span class="user-menu-text">{{ current_user.email.split('@')[0] }}</span>
+                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </button>
+                    <div class="user-menu-content" id="userMenuContent">
+                        {% if current_user.is_superadmin %}
+                        <a href="{{ url_for('admin_app.dashboard') }}" class="superadmin-link">
+                            <i class="fas fa-crown"></i> Panel de Control
+                        </a>
+                        <div class="user-menu-divider"></div>
+                        {% endif %}
+                        <a href="{{ url_for('store.config') }}">
+                            <i class="fas fa-cog"></i> Configuración
+                        </a>
+                        <a href="{{ url_for('auth.logout') }}" class="logout-link">
+                            <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                        </a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="admin-main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block admin_content %}{% endblock %}
+    </main>
+</div>
+
+<script>
+function toggleUserMenu(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('userMenuContent');
+    dropdown.classList.toggle('show');
+}
+
+// Cerrar dropdown de usuario al hacer clic fuera
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(event) {
+        const userMenu = document.querySelector('.user-menu-dropdown');
+        const dropdown = document.getElementById('userMenuContent');
+        
+        if (userMenu && dropdown && !userMenu.contains(event.target) && dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+        }
+    });
+});
+</script>
+{% endblock %}

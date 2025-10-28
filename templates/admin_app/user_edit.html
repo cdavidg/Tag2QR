@@ -1,0 +1,70 @@
+{% extends "admin_app/base.html" %}
+
+{% block title %}Editar Usuario - {{ user.email }}{% endblock %}
+{% block page_icon %}fas fa-user-edit{% endblock %}
+{% block page_title %}Editar Usuario{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px;">
+    <a href="{{ url_for('admin_app.user_detail', user_id=user.id) }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Volver</a>
+</div>
+
+<div style="max-width: 600px;">
+    <div class="card">
+        <div class="card-header"><i class="fas fa-edit"></i> Editar información del usuario</div>
+        <div class="card-body">
+            <form method="post">
+                <div class="form-group">
+                    <label for="email"><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           class="form-control" 
+                           value="{{ user.email }}" 
+                           required>
+                    <small style="color: #999999;">Cambiar el email del usuario</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password"><i class="fas fa-lock"></i> Nueva Contraseña</label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="••••••••">
+                    <small style="color: #999999;">Dejar en blanco para no cambiar</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" 
+                               name="is_admin" 
+                               {% if user.is_admin %}checked{% endif %}>
+                        <i class="fas fa-user-shield"></i> Es Administrador
+                    </label>
+                    <br>
+                    <small style="color: #999999;">Puede acceder al panel /admin</small>
+                </div>
+                
+                {% if current_user.is_superadmin and user.id != current_user.id %}
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" 
+                               name="is_superadmin" 
+                               {% if user.is_superadmin %}checked{% endif %}>
+                        <i class="fas fa-crown"></i> Es Super Administrador
+                    </label>
+                    <br>
+                    <small style="color: #999999;">Puede acceder al panel /admin_app</small>
+                </div>
+                {% endif %}
+                
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Guardar Cambios</button>
+                    <a href="{{ url_for('admin_app.user_detail', user_id=user.id) }}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

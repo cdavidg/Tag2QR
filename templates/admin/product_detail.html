@@ -1,0 +1,266 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ product.name }} - Tag2QR Admin{% endblock %}
+
+{% block admin_content %}
+<!-- Header del producto -->
+<div class="product-detail-header">
+    <div class="product-title-section">
+        <h2>{{ product.name }}</h2>
+        <div class="product-meta-tags">
+            <span class="meta-tag">SKU: {{ product.sku }}</span>
+            <span class="meta-tag price-tag">{{ product.price_formatted }}</span>
+            {% if product.active %}
+                <span class="meta-tag status-active">● Activo</span>
+            {% else %}
+                <span class="meta-tag status-inactive">● Inactivo</span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="product-header-actions">
+        <a href="{{ url_for('admin.product_edit', product_id=product.id) }}" class="btn btn-primary">Editar</a>
+        <a href="{{ url_for('qr.product_qr_view', product_id=product.id) }}" class="btn btn-outline">QR</a>
+        <a href="{{ url_for('public.product_view', sku=product.sku) }}" class="btn btn-outline" target="_blank">Vista Pública</a>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">← Volver</a>
+    </div>
+</div>
+
+<!-- Layout 2 columnas: Izquierda (imagen + descripción) | Derecha (gráfica + info) -->
+<div class="product-detail-layout">
+    <!-- Columna Izquierda -->
+    <div class="product-left-column">
+        <!-- Imágenes -->
+        {% if product.images %}
+            <div class="product-images-section">
+                <h3>Imágenes del Producto</h3>
+                <div class="images-gallery-grid">
+                    {% for image in product.images %}
+                        <div class="gallery-image-item">
+                            <img src="{{ image.url }}" alt="{{ product.name }}" loading="lazy">
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Descripción -->
+        {% if product.description %}
+            <div class="product-description-section">
+                <h3>Descripción</h3>
+                <div class="description-text">
+                    {{ product.description }}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Columna Derecha -->
+    <div class="product-right-column">
+        <!-- Gráfica de Precio -->
+        <div class="price-chart-card">
+            <h3>Historial de Precio</h3>
+            <div class="chart-canvas-container">
+                <canvas id="priceChart"></canvas>
+            </div>
+            <div class="chart-stats-grid">
+                <div class="stat-box">
+                    <span class="stat-value" id="currentPrice">{{ product.price_formatted }}</span>
+                    <span class="stat-label">Precio Actual</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="totalViews">{{ product.total_views }}</span>
+                    <span class="stat-label">Visitas</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value" id="priceChanges">0</span>
+                    <span class="stat-label">Cambios</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Producto -->
+        <div class="product-info-card">
+            <h4>Información</h4>
+            <dl class="info-list-compact">
+                <dt>SKU</dt>
+                <dd>{{ product.sku }}</dd>
+                
+                <dt>Precio</dt>
+                <dd>{{ product.price_formatted }}</dd>
+                
+                <dt>Estado</dt>
+                <dd>
+                    {% if product.active %}
+                        <span class="status-active">● Activo</span>
+                    {% else %}
+                        <span class="status-inactive">● Inactivo</span>
+                    {% endif %}
+                </dd>
+                
+                <dt>Creado</dt>
+                <dd>{{ product.created_at.strftime('%d/%m/%Y') }}</dd>
+                
+                <dt>Imágenes</dt>
+                <dd>{{ product.images|length }} archivo(s)</dd>
+            </dl>
+        </div>
+
+        <!-- Gestión del Producto -->
+        <div class="product-management-card">
+            <h4>Gestión del Producto</h4>
+            
+            <!-- Toggle Estado -->
+            <div class="management-section">
+                <div class="management-item">
+                    <div class="management-item-info">
+                        <strong>Estado del Producto</strong>
+                        <small>{% if product.active %}Visible en la tienda{% else %}Oculto en la tienda{% endif %}</small>
+                    </div>
+                    <form method="POST" action="{{ url_for('admin.product_toggle_active', product_id=product.id) }}" style="display: inline;" onsubmit="return confirmToggleStatus()">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        {% if product.active %}
+                            <button type="submit" class="btn btn-warning btn-sm">Desactivar</button>
+                        {% else %}
+                            <button type="submit" class="btn btn-success btn-sm">Activar</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+
+            <!-- Zona de Peligro -->
+            <div class="management-section danger-section">
+                <div class="management-item">
+                    <div class="management-item-info">
+                        <strong>Eliminar Producto</strong>
+                        <small>Esta acción no se puede deshacer</small>
+                    </div>
+                    <form method="POST" action="{{ url_for('admin.product_delete', product_id=product.id) }}" style="display: inline;" onsubmit="return confirmDelete()">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js desde CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+let priceChart = null;
+let priceData = [];
+
+// Cargar datos al iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    loadPriceData();
+});
+
+function loadPriceData() {
+    fetch('{{ url_for("admin.price_chart_data", product_id=product.id) }}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                priceData = data.data;
+                document.getElementById('priceChanges').textContent = priceData.length;
+                renderChart();
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando datos:', error);
+        });
+}
+
+function renderChart() {
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    
+    // Destruir gráfica anterior si existe
+    if (priceChart) {
+        priceChart.destroy();
+    }
+    
+    // Preparar datos
+    const labels = priceData.map(d => d.date);
+    const prices = priceData.map(d => d.price);
+    
+    // Gráfica de líneas
+    priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Precio',
+                data: prices,
+                borderColor: '#000000',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: '#000000',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#000000',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return 'Precio: $' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    },
+                    grid: {
+                        color: '#e5e5e5'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: '#e5e5e5'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Funciones de confirmación para acciones de gestión
+function confirmToggleStatus() {
+    const isActive = {{ 'true' if product.active else 'false' }};
+    const action = isActive ? 'desactivar' : 'activar';
+    const message = isActive 
+        ? '¿Estás seguro de que quieres desactivar este producto?\n\nEl producto dejará de ser visible en la tienda pública.' 
+        : '¿Estás seguro de que quieres activar este producto?\n\nEl producto será visible en la tienda pública.';
+    
+    return confirm(message);
+}
+
+function confirmDelete() {
+    const productName = "{{ product.name }}";
+    const message = `¿Estás seguro de que quieres ELIMINAR el producto "${productName}"?\n\n⚠️ ADVERTENCIA: Esta acción es PERMANENTE y no se puede deshacer.\n\n• Se eliminarán todas las imágenes\n• Se perderá el historial de precios\n• Se perderán todas las estadísticas\n\n¿Deseas continuar?`;
+    
+    if (confirm(message)) {
+        return confirm('⚠️ CONFIRMACIÓN FINAL\n\n¿Realmente deseas eliminar este producto de forma permanente?');
+    }
+    return false;
+}
+</script>
+
+{% endblock %}

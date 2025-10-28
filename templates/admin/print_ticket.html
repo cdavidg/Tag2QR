@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block title %}Imprimir Etiqueta - {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="print-container" id="printArea">
+    <!-- PLANTILLA RECTANGULAR -->
+    {% if store.label_template == 'rectangular' or not store.label_template %}
+    <div class="label-rectangular" style="
+        width: {{ store.label_width or 80 }}mm;
+        height: {{ store.label_height or 50 }}mm;
+        padding: {{ store.label_padding or 5 }}mm;
+        background-color: {{ store.label_background_color or '#FFFFFF' }};
+        color: {{ store.label_text_color or '#000000' }};
+        border: {{ store.label_border_width if store.label_border else 0 }}px solid {{ store.label_border_color or '#000000' }};
+    ">
+        <div class="label-body">
+            <div class="label-qr" style="width: {{ qr_size_mm }}mm; height: {{ qr_size_mm }}mm; flex-shrink: 0;">
+                <img src="{{ qr_url }}" alt="QR Code" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+            
+            <div class="label-info">
+                {% if store.label_show_store_name != False %}
+                    <div class="label-store-name" style="font-size: {{ store.label_font_size or 12 }}pt;">
+                        <strong>{{ store.name }}</strong>
+                    </div>
+                {% endif %}
+                
+                {% if store.label_show_product_name != False %}
+                    <div class="label-product-name" style="font-size: {{ store.label_font_size or 12 }}pt;">
+                        {{ product.name }}
+                    </div>
+                {% endif %}
+                
+                {% if store.label_show_sku != False %}
+                    <div class="label-sku" style="font-size: {{ (store.label_font_size or 12) * 0.85 }}pt;">
+                        SKU: {{ product.sku }}
+                    </div>
+                {% endif %}
+                
+                {% if store.label_show_price != False %}
+                    <div class="label-price" style="font-size: {{ (store.label_font_size or 12) * 1.2 }}pt;">
+                        <strong>{{ product.price_formatted }}</strong>
+                    </div>
+                {% endif %}
+                
+                {% if store.label_show_description != False and product.description %}
+                    <div class="label-description" style="font-size: {{ (store.label_font_size or 12) * 0.85 }}pt;">
+                        {{ product.description[:100] }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- PLANTILLA CUADRADA -->
+    {% elif store.label_template == 'square' %}
+    <div class="label-square" style="
+        width: {{ store.label_width or 60 }}mm;
+        height: {{ store.label_width or 60 }}mm;
+        padding: {{ store.label_padding or 5 }}mm;
+        background-color: {{ store.label_background_color or '#FFFFFF' }};
+        color: {{ store.label_text_color or '#000000' }};
+        border: {{ store.label_border_width if store.label_border else 0 }}px solid {{ store.label_border_color or '#000000' }};
+    ">
+        <div class="label-qr-center" style="width: {{ qr_size_mm }}mm; height: {{ qr_size_mm }}mm;">
+            <img src="{{ qr_url }}" alt="QR Code" style="width: 100%; height: 100%; object-fit: contain;">
+        </div>
+        
+        <div class="label-info-square" style="font-size: {{ store.label_font_size or 10 }}pt;">
+            {% if store.label_show_store_name != False %}
+                <div class="label-store-name-square">
+                    <strong>{{ store.name }}</strong>
+                </div>
+            {% endif %}
+            
+            {% if store.label_show_product_name != False %}
+                <div class="label-product-name-square">{{ product.name }}</div>
+            {% endif %}
+            
+            {% if store.label_show_price != False %}
+                <div class="label-price-square">
+                    <strong>{{ product.price_formatted }}</strong>
+                </div>
+            {% endif %}
+            
+            {% if store.label_show_sku != False %}
+                <div class="label-sku-square" style="font-size: {{ (store.label_font_size or 10) * 0.85 }}pt;">
+                    {{ product.sku }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- PLANTILLA CIRCULAR -->
+    {% elif store.label_template == 'circular' %}
+    <div class="label-circular" style="
+        width: {{ store.label_width or 60 }}mm;
+        height: {{ store.label_width or 60 }}mm;
+        padding: {{ store.label_padding or 5 }}mm;
+        background-color: {{ store.label_background_color or '#FFFFFF' }};
+        color: {{ store.label_text_color or '#000000' }};
+        border: {{ store.label_border_width if store.label_border else 0 }}px solid {{ store.label_border_color or '#000000' }};
+    ">
+        <div class="label-content-circular">
+            <div class="label-qr-circular" style="width: {{ qr_size_mm }}mm; height: {{ qr_size_mm }}mm;">
+                <img src="{{ qr_url }}" alt="QR Code" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+            
+            {% if store.label_show_product_name != False %}
+                <div class="label-product-name-circular" style="font-size: {{ store.label_font_size or 10 }}pt;">
+                    {{ product.name }}
+                </div>
+            {% endif %}
+            
+            {% if store.label_show_price != False %}
+                <div class="label-price-circular" style="font-size: {{ (store.label_font_size or 10) * 1.2 }}pt;">
+                    <strong>{{ product.price_formatted }}</strong>
+                </div>
+            {% endif %}
+            
+            {% if store.label_show_store_name != False %}
+                <div class="label-store-name-circular" style="font-size: {{ (store.label_font_size or 10) * 0.85 }}pt;">
+                    {{ store.name }}
+                </div>
+            {% endif %}
+            
+            {% if store.label_show_sku != False %}
+                <div class="label-sku-circular" style="font-size: {{ (store.label_font_size or 10) * 0.75 }}pt;">
+                    {{ product.sku }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Controles de impresión (no se imprimen) -->
+<div class="print-controls">
+    <button onclick="window.print()" class="btn btn-primary">
+        <i class="fas fa-print"></i> Imprimir Etiqueta
+    </button>
+    <a href="{{ url_for('admin.product_detail', product_id=product.id) }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Volver
+    </a>
+    <a href="{{ url_for('store.label_templates') }}" class="btn btn-secondary">
+        <i class="fas fa-edit"></i> Editar Plantilla
+    </a>
+</div>
+
+<style>
+/* Estilos base */
+.print-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #f5f5f5;
+    padding: 20px;
+}
+
+/* PLANTILLA RECTANGULAR */
+.label-rectangular {
+    background: white;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+.label-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 3mm;
+}
+
+.label-logo {
+    max-height: 10mm;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.label-store-name {
+    font-weight: bold;
+    font-size: 12pt;
+    text-align: center;
+}
+
+.label-body {
+    display: flex;
+    gap: 3mm;
+    flex: 1;
+    box-sizing: border-box;
+}
+
+.label-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2mm;
+    min-width: 0; /* Permite que el texto se ajuste */
+}
+
+.label-product-name {
+    font-weight: bold;
+    line-height: 1.2;
+}
+
+.label-price {
+    font-weight: bold;
+}
+
+.label-sku {
+    color: #666;
+}
+
+.label-description {
+    line-height: 1.3;
+}
+
+.label-qr {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.label-qr img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* PLANTILLA CUADRADA */
+.label-square {
+    background: white;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.label-header-square {
+    width: 100%;
+    text-align: center;
+}
+
+.label-logo-square {
+    max-height: 8mm;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.label-store-name-square {
+    font-weight: bold;
+    font-size: 10pt;
+}
+
+.label-qr-center {
+    flex-shrink: 0;
+}
+
+.label-qr-center img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.label-info-square {
+    width: 100%;
+    text-align: center;
+}
+
+.label-product-name-square {
+    font-weight: bold;
+    font-size: 11pt;
+    margin-bottom: 1mm;
+    line-height: 1.2;
+}
+
+.label-price-square {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-bottom: 1mm;
+}
+
+.label-sku-square {
+    font-size: 7pt;
+    color: #666;
+}
+
+/* PLANTILLA CIRCULAR */
+.label-circular {
+    background: white;
+    border-radius: 50%;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.label-content-circular {
+    text-align: center;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2mm;
+}
+
+.label-qr-circular {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.label-qr-circular img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.label-product-name-circular {
+    font-weight: bold;
+    font-size: 10pt;
+    margin-bottom: 1mm;
+    line-height: 1.1;
+}
+
+.label-price-circular {
+    font-size: 12pt;
+    font-weight: bold;
+    margin-bottom: 1mm;
+}
+
+.label-logo-circular {
+    max-height: 6mm;
+    max-width: 100%;
+    object-fit: contain;
+    margin-top: 1mm;
+}
+
+.label-store-name-circular {
+    font-size: 8pt;
+    font-weight: bold;
+    margin-top: 1mm;
+}
+
+/* Controles de impresión */
+.print-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Estilos de impresión */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    
+    .print-container {
+        min-height: 0;
+        background: white;
+        padding: 0;
+        display: block;
+    }
+    
+    .print-controls {
+        display: none !important;
+    }
+    
+    .label-rectangular,
+    .label-square,
+    .label-circular {
+        page-break-inside: avoid;
+        margin: 0;
+        box-shadow: none !important;
+    }
+}
+
+/* Responsive para móvil */
+@media (max-width: 768px) {
+    .print-container {
+        padding: 10px;
+        min-height: calc(100vh - 180px);
+    }
+    
+    .print-controls {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: white;
+        padding: 12px;
+        border-radius: 0;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.15);
+        z-index: 1000;
+    }
+    
+    .print-controls .btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 16px;
+        font-size: 15px;
+        font-weight: 500;
+    }
+    
+    .print-controls .btn i {
+        font-size: 16px;
+    }
+}
+
+@page {
+    margin: 0;
+    size: auto;
+}
+</style>
+
+{% endblock %}

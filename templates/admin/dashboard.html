@@ -1,0 +1,253 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard - Tag2QR Admin{% endblock %}
+
+{% block admin_content %}
+<!-- Header del Dashboard (fuera del contenedor flex) -->
+<div class="dashboard-header">
+    <div class="dashboard-left">
+        <h2>Productos</h2>
+        <form method="GET" class="search-form">
+            <input type="text" name="search" value="{{ search }}" placeholder="Buscar productos..." class="search-input">
+            <button type="submit" class="btn btn-outline btn-b">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+        </form>
+    </div>
+    <div class="dashboard-actions desktop-actions">
+        <a href="{{ url_for('admin.product_new') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nuevo
+        </a>
+        <a href="{{ url_for('admin.barcode_scanner') }}" class="btn btn-outline">
+            <i class="fas fa-barcode"></i> Escanear
+        </a>
+        <a href="{{ url_for('category.list_categories') }}" class="btn btn-outline">
+            <i class="fas fa-folder"></i> Categorías
+        </a>
+        <a href="{{ url_for('store.label_templates') }}" class="btn btn-outline">
+            <i class="fas fa-tags"></i> Etiquetas
+        </a>
+    </div>
+</div>
+
+<!-- Burbuja flotante de herramientas (solo móvil) -->
+<div class="mobile-toolbox">
+    <button class="toolbox-toggle" onclick="toggleToolbox()" aria-label="Abrir herramientas">
+        <i class="fas fa-tools"></i>
+    </button>
+    <div class="toolbox-menu" id="toolboxMenu">
+        <a href="{{ url_for('admin.product_new') }}" class="toolbox-item">
+            <i class="fas fa-plus"></i>
+            <span>Nuevo</span>
+        </a>
+        <a href="{{ url_for('admin.barcode_scanner') }}" class="toolbox-item">
+            <i class="fas fa-barcode"></i>
+            <span>Escanear</span>
+        </a>
+        <a href="{{ url_for('category.list_categories') }}" class="toolbox-item">
+            <i class="fas fa-folder"></i>
+            <span>Categorías</span>
+        </a>
+        <a href="{{ url_for('store.label_templates') }}" class="toolbox-item">
+            <i class="fas fa-tags"></i>
+            <span>Etiquetas</span>
+        </a>
+    </div>
+</div>
+
+<script>
+function toggleToolbox() {
+    const menu = document.getElementById('toolboxMenu');
+    const toggle = document.querySelector('.toolbox-toggle');
+    menu.classList.toggle('show');
+    toggle.classList.toggle('active');
+}
+
+// Cerrar toolbox al hacer clic fuera
+document.addEventListener('click', function(event) {
+    const toolbox = document.querySelector('.mobile-toolbox');
+    const menu = document.getElementById('toolboxMenu');
+    
+    if (toolbox && !toolbox.contains(event.target) && menu.classList.contains('show')) {
+        menu.classList.remove('show');
+        document.querySelector('.toolbox-toggle').classList.remove('active');
+    }
+});
+</script>
+
+<!-- Dashboard con 2 columnas -->
+<div class="dashboard">
+    <!-- Contenido principal -->
+    <div class="dashboard-content">
+        {% if products_by_category %}
+            <!-- Vista agrupada por categorías (cuando se muestra "Todas") -->
+            {% for group in products_by_category %}
+                <div class="category-group">
+                    <h3 class="category-group-title">
+                        {% if group.category %}
+                            {{ group.category.name }}
+                        {% else %}
+                            Sin Categoría
+                        {% endif %}
+                        <span class="category-group-count">({{ group.products|length }})</span>
+                    </h3>
+                    
+                    <div class="products-grid">
+                        {% for product in group.products %}
+                            <a href="{{ url_for('admin.product_detail', product_id=product.id) }}" class="product-card-link">
+                                <div class="product-card">
+                                    <div class="product-image">
+                                        {% if product.main_image %}
+                                            <img src="{{ product.main_image.thumbnail_url }}" alt="{{ product.name }}" loading="lazy">
+                                        {% else %}
+                                            <div class="no-image">Sin imagen</div>
+                                        {% endif %}
+                                        
+                                        <!-- Badge de Estado (esquina superior izquierda) -->
+                                        <div class="product-status-badge" title="{% if product.active %}Producto activo - Visible en la tienda{% else %}Producto inactivo - Oculto en la tienda{% endif %}">
+                                            {% if product.active %}
+                                                <span class="status-badge-active">
+                                                    <i class="fas fa-check-circle"></i> Activo
+                                                </span>
+                                            {% else %}
+                                                <span class="status-badge-inactive">
+                                                    <i class="fas fa-times-circle"></i> Inactivo
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Contador de Visitas (esquina inferior derecha) -->
+                                        <div class="product-views-badge" title="Total de visitas: {{ product.total_views }}">
+                                            <i class="fas fa-eye"></i> {{ product.total_views }}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="product-info">
+                                        <h3 class="product-name">{{ product.name }}</h3>
+                                        <p class="product-sku">SKU: {{ product.sku }}</p>
+                                        <p class="product-price">{{ product.price_formatted }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% elif products.items %}
+            <!-- Vista normal (cuando hay filtro de categoría o búsqueda) -->
+            <div class="products-grid">
+                {% for product in products.items %}
+                    <a href="{{ url_for('admin.product_detail', product_id=product.id) }}" class="product-card-link">
+                        <div class="product-card">
+                            <div class="product-image">
+                                {% if product.main_image %}
+                                    <img src="{{ product.main_image.thumbnail_url }}" alt="{{ product.name }}" loading="lazy">
+                                {% else %}
+                                    <div class="no-image">Sin imagen</div>
+                                {% endif %}
+                                
+                                <!-- Badge de Estado (esquina superior izquierda) -->
+                                <div class="product-status-badge" title="{% if product.active %}Producto activo - Visible en la tienda{% else %}Producto inactivo - Oculto en la tienda{% endif %}">
+                                    {% if product.active %}
+                                        <span class="status-badge-active">
+                                            <i class="fas fa-check-circle"></i> Activo
+                                        </span>
+                                    {% else %}
+                                        <span class="status-badge-inactive">
+                                            <i class="fas fa-times-circle"></i> Inactivo
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Contador de Visitas (esquina inferior derecha) -->
+                                <div class="product-views-badge" title="Total de visitas: {{ product.total_views }}">
+                                    <i class="fas fa-eye"></i> {{ product.total_views }}
+                                </div>
+                            </div>
+                            
+                            <div class="product-info">
+                                <h3 class="product-name">{{ product.name }}</h3>
+                                <p class="product-sku">SKU: {{ product.sku }}</p>
+                                <p class="product-price">{{ product.price_formatted }}</p>
+                            </div>
+                        </div>
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-results">No se encontraron productos.</p>
+        {% endif %}
+
+            <!-- Paginación -->
+            {% if products.pages > 1 %}
+                <div class="pagination">
+                    {% if products.has_prev %}
+                        <a href="{{ url_for('admin.dashboard', page=products.prev_num, search=search, category=selected_category) }}" class="pagination-link">← Anterior</a>
+                    {% else %}
+                        <span></span>
+                    {% endif %}
+                    
+                    <span class="pagination-info">
+                        Página {{ products.page }} de {{ products.pages }}
+                    </span>
+                    
+                    {% if products.has_next %}
+                        <a href="{{ url_for('admin.dashboard', page=products.next_num, search=search, category=selected_category) }}" class="pagination-link">Siguiente →</a>
+                    {% else %}
+                        <span></span>
+                    {% endif %}
+                </div>
+            {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="dashboard-sidebar">
+        <!-- Top Productos por Visitas -->
+        {% if top_products %}
+            <div class="sidebar-section">
+                <h3>Más Visitados (30 días)</h3>
+                <div class="top-products-chart">
+                    {% set max_views = top_products[0][1] if top_products else 1 %}
+                    {% for product, view_count in top_products[:8] %}
+                        <div class="chart-bar-item">
+                            <div class="chart-bar-info">
+                                <a href="{{ url_for('admin.product_detail', product_id=product.id) }}" class="chart-product-name" title="{{ product.name }}">
+                                    {{ product.name }}
+                                </a>
+                                <span class="chart-view-count">{{ view_count }} visitas</span>
+                            </div>
+                            <div class="chart-bar-container">
+                                <div class="chart-bar-fill" style="width: {{ (view_count / max_views * 100)|round(1) }}%">
+                                    <span class="chart-bar-value">{{ view_count }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Categorías -->
+        <div class="sidebar-section">
+            <h3>Categorías</h3>
+            <ul class="category-list">
+                <li class="category-item">
+                    <a href="{{ url_for('admin.dashboard') }}" class="category-link {% if not selected_category %}active{% endif %}">
+                        <span class="category-name">Todas</span>
+                        <span class="category-badge">{{ total_products }}</span>
+                    </a>
+                </li>
+                {% for category in categories %}
+                    <li class="category-item">
+                        <a href="{{ url_for('admin.dashboard', category=category.id) }}" 
+                           class="category-link {% if selected_category == category.id %}active{% endif %}">
+                            <span class="category-name">{{ category.name }}</span>
+                            <span class="category-badge">{{ category.product_count }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
